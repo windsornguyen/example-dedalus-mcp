@@ -13,7 +13,7 @@ from gh import github, gh_tools
 server = MCPServer(
     name="example-dedalus-mcp",
     connections=[github, supabase],
-    http_security=TransportSecuritySettings(enable_dns_rebinding_protection=True)
+    http_security=TransportSecuritySettings(enable_dns_rebinding_protection=False)
 )
 
 
