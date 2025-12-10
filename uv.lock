@@ -305,7 +305,7 @@ wheels = [
 
 [[package]]
 name = "dedalus-mcp"
-version = "0.2.0"
+version = "0.2.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "mcp", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -313,9 +313,9 @@ dependencies = [
     { name = "pyjwt", extra = ["crypto"], marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d7/c8/71258c9535b0ecbf78ab0c9969592a5039c49795e753bc1ed03ad6c17f89/dedalus_mcp-0.2.0.tar.gz", hash = "sha256:5c7bc3412db50b0149635550383c4fc1543caa23fbe984ba36116d8d57807858", size = 111206, upload-time = "2025-12-09T00:43:03.243Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ee/f8/f9873c80864f976eb78538d6e327f3a52840ae8ee7b5932a088ec64b3dfa/dedalus_mcp-0.2.4.tar.gz", hash = "sha256:366694e9e12fffa89a4410bff8c8ec20a8a71f9e90acfa0cc797a162be718b68", size = 112557, upload-time = "2025-12-10T05:12:33.446Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/63/7d/18807eba6f77677dc784a817b11f36b5b4abe7568f6807a3e2996ab350fb/dedalus_mcp-0.2.0-py3-none-any.whl", hash = "sha256:e028777c4291bccaa25a736264ca8df7cbc63a511cb4863b18f6bd316b3621c6", size = 150343, upload-time = "2025-12-09T00:43:01.933Z" },
+    { url = "https://files.pythonhosted.org/packages/68/61/7145a60716607bb90cda97167cbff0a492485f265be843f636c42df93fed/dedalus_mcp-0.2.4-py3-none-any.whl", hash = "sha256:977ee1535926603978324204cc715f495749c906ba1045677daed91e6dbfd7f9", size = 151677, upload-time = "2025-12-10T05:12:32.013Z" },
 ]
 
 [[package]]
@@ -376,7 +376,7 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "dedalus-mcp", specifier = ">=0.2.0" },
+    { name = "dedalus-mcp", specifier = ">=0.2.4" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "python-dotenv", specifier = ">=1.2.1" },
     { name = "uvloop", marker = "sys_platform != 'win32'", specifier = ">=0.22.1" },
