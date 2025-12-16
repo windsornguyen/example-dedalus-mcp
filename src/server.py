@@ -20,4 +20,4 @@ server = MCPServer(
 
 async def main() -> None:
     server.collect(*smoke_tools, *gh_tools, *db_tools)
-    await server.serve(port=8001)
+    await server.serve(port=8080)
