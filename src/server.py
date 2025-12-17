@@ -14,7 +14,8 @@ from smoke import smoke_tools
 server = MCPServer(
     name="example-dedalus-mcp",
     connections=[github, supabase],
-    http_security=TransportSecuritySettings(enable_dns_rebinding_protection=False)
+    http_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
+    authorization_server="https://preview.as.dedaluslabs.ai",
 )
 
 
