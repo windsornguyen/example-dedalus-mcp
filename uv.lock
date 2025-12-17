@@ -305,7 +305,7 @@ wheels = [
 
 [[package]]
 name = "dedalus-mcp"
-version = "0.4.0"
+version = "0.4.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "mcp", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -313,9 +313,9 @@ dependencies = [
     { name = "pyjwt", extra = ["crypto"], marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/33/3f/06fe1cf99c4e89a093ff3bbb820ccebeb8641011d9fe25b980838fba70ab/dedalus_mcp-0.4.0.tar.gz", hash = "sha256:d1bc469bc3517152891f6ef8d4fa8c89827913ce953dc80e62ed2366f9cb4a7f", size = 116609, upload-time = "2025-12-17T16:02:50.779Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c0/d1/d4abb98c305a1935d657805a4c4b35f4c0aa5d53d6cbdeab145e87027c34/dedalus_mcp-0.4.1.tar.gz", hash = "sha256:7b6e7d29ccae13cf24010bc92ba6301cc35eec726df240113b3b44777b405a79", size = 116765, upload-time = "2025-12-17T22:13:09.54Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/71/ee/2a20b151f4a5686f79dbce79fc49014d4a51f44c4ad23f373719c028f4c8/dedalus_mcp-0.4.0-py3-none-any.whl", hash = "sha256:5239b34b1796bc94c8b03b12c95042fbed12e66d995971cd401a27e44f4c8feb", size = 157526, upload-time = "2025-12-17T16:02:51.895Z" },
+    { url = "https://files.pythonhosted.org/packages/97/5b/d9bc7252d4015d5ce17f469dfda27eacc97a41eda37740d1d4bdeec634e8/dedalus_mcp-0.4.1-py3-none-any.whl", hash = "sha256:a26b27bf402df716c511fa180e6e4b433341261151d8386d28eaa0e877dcbbc1", size = 157671, upload-time = "2025-12-17T22:13:08.001Z" },
 ]
 
 [[package]]
@@ -376,7 +376,7 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "dedalus-mcp", specifier = ">=0.3.0" },
+    { name = "dedalus-mcp", specifier = ">=0.4.0" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "python-dotenv", specifier = ">=1.2.1" },
     { name = "uvloop", marker = "sys_platform != 'win32'", specifier = ">=0.22.1" },
