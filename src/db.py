@@ -13,6 +13,7 @@ Required environment variables:
 
 import os
 from typing import Any
+from urllib.parse import quote
 
 from dedalus_mcp import HttpMethod, HttpRequest, get_context, tool
 from dedalus_mcp.auth import Connection, SecretKeys
@@ -56,6 +57,15 @@ class DatabaseSingleResult(BaseModel):
 # --- Helper ------------------------------------------------------------------
 
 
+def _encode_query(query: str) -> str:
+    """URL-encode query string while preserving PostgREST structure.
+
+    Encodes spaces, parentheses, quotes, etc. while keeping =, &, ., *, and , intact.
+    This is needed until the framework auto-encodes (dedalus-mcp >= 0.4.0).
+    """
+    return quote(query, safe="=&,.*-_~:")
+
+
 def _headers(prefer: str | None = None) -> dict[str, str]:
     """Build headers for Supabase REST API.
 
@@ -97,15 +107,18 @@ async def db_select(
     """
     ctx = get_context()
 
-    path = f"/{table}?select={columns}"
+    # Build query string, then encode to handle spaces/special chars
+    query = f"select={columns}"
     if filters:
-        path += f"&{filters}"
+        query += f"&{filters}"
     if order:
-        path += f"&order={order}"
+        query += f"&order={order}"
     if limit:
-        path += f"&limit={limit}"
+        query += f"&limit={limit}"
     if offset:
-        path += f"&offset={offset}"
+        query += f"&offset={offset}"
+
+    path = f"/{table}?{_encode_query(query)}"
 
     request = HttpRequest(method=HttpMethod.GET, path=path, headers=_headers("count=exact"))
     response = await ctx.dispatch("supabase", request)
@@ -164,7 +177,8 @@ async def db_update(table: str, updates: dict[str, Any], filters: str, *, return
     ctx = get_context()
 
     prefer = "return=representation" if return_data else "return=minimal"
-    request = HttpRequest(method=HttpMethod.PATCH, path=f"/{table}?{filters}", headers=_headers(prefer), body=updates)
+    path = f"/{table}?{_encode_query(filters)}"
+    request = HttpRequest(method=HttpMethod.PATCH, path=path, headers=_headers(prefer), body=updates)
     response = await ctx.dispatch("supabase", request)
 
     if response.success:
@@ -192,7 +206,8 @@ async def db_delete(table: str, filters: str, *, return_data: bool = False) -> D
     ctx = get_context()
 
     prefer = "return=representation" if return_data else "return=minimal"
-    request = HttpRequest(method=HttpMethod.DELETE, path=f"/{table}?{filters}", headers=_headers(prefer))
+    path = f"/{table}?{_encode_query(filters)}"
+    request = HttpRequest(method=HttpMethod.DELETE, path=path, headers=_headers(prefer))
     response = await ctx.dispatch("supabase", request)
 
     if response.success:
@@ -254,9 +269,10 @@ async def db_get_by_id(table: str, id_column: str, id_value: str | int, columns:
     """
     ctx = get_context()
 
+    query = f"select={columns}&{id_column}=eq.{id_value}"
     request = HttpRequest(
         method=HttpMethod.GET,
-        path=f"/{table}?select={columns}&{id_column}=eq.{id_value}",
+        path=f"/{table}?{_encode_query(query)}",
         headers=_headers("return=representation"),
     )
     response = await ctx.dispatch("supabase", request)
