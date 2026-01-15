@@ -1,44 +1,32 @@
 # Copyright (c) 2025 Dedalus Labs, Inc. and its contributors
 # SPDX-License-Identifier: MIT
 
-"""Supabase database operations for MCP server.
+"""Supabase CRUD tools via REST API.
 
-Common CRUD operations exposed as MCP tools. Uses Supabase REST API via
-dedalus-mcp's HTTP dispatch.
-
-Required environment variables:
-    SUPABASE_URL: Project URL (e.g., https://xxx.supabase.co)
-    SUPABASE_SECRET_KEY: Supabase service role key (bypasses RLS)
+Credentials (URL and API key) provided by client via token exchange.
+No server-side environment variables required.
 """
 
-import os
 from typing import Any
 from urllib.parse import quote
 
+from pydantic import Field
+from pydantic.dataclasses import dataclass
+
 from dedalus_mcp import HttpMethod, HttpRequest, get_context, tool
 from dedalus_mcp.auth import Connection, SecretKeys
-from pydantic import BaseModel, Field
-
-from dotenv import load_dotenv
-
-load_dotenv()
-
-# --- Connection --------------------------------------------------------------
 
 supabase = Connection(
     name="supabase",
     secrets=SecretKeys(key="SUPABASE_SECRET_KEY"),
-    base_url=f"{os.getenv('SUPABASE_URL')}/rest/v1",
-    auth_header_name="apikey",      # Supabase uses 'apikey' header
-    auth_header_format="{api_key}",  # Raw value, no Bearer prefix
+    auth_header_name="apikey",
+    auth_header_format="{api_key}",
 )
 
 
-# --- Response Models ---------------------------------------------------------
-
-
-class DatabaseResult(BaseModel):
-    """Generic database operation result."""
+@dataclass(frozen=True)
+class DbResult:
+    """Database operation result."""
 
     success: bool
     data: list[dict[str, Any]] = Field(default_factory=list)
@@ -46,7 +34,8 @@ class DatabaseResult(BaseModel):
     error: str | None = None
 
 
-class DatabaseSingleResult(BaseModel):
+@dataclass(frozen=True)
+class DbSingle:
     """Single row result."""
 
     success: bool
@@ -54,35 +43,27 @@ class DatabaseSingleResult(BaseModel):
     error: str | None = None
 
 
-# --- Helper ------------------------------------------------------------------
+def _enc(q: str) -> str:
+    """URL-encode preserving PostgREST operators (=, &, etc)."""
+    return quote(q, safe="=&,.*-_~:")
 
 
-def _encode_query(query: str) -> str:
-    """URL-encode query string while preserving PostgREST structure.
-
-    Encodes spaces, parentheses, quotes, etc. while keeping =, &, ., *, and , intact.
-    This is needed until the framework auto-encodes (dedalus-mcp >= 0.4.0).
-    """
-    return quote(query, safe="=&,.*-_~:")
-
-
-def _headers(prefer: str | None = None) -> dict[str, str]:
-    """Build headers for Supabase REST API.
-
-    Note: Authorization header is injected by the framework.
-    apikey is required by Supabase for routing even when using service_role key.
-    """
-    key = os.getenv("SUPABASE_SECRET_KEY", "")
-    h: dict[str, str] = {"Content-Type": "application/json", "apikey": key}
+def _hdrs(prefer: str | None = None) -> dict[str, str]:
+    """Build Supabase headers. apikey injected by framework."""
+    h = {"Content-Type": "application/json"}
     if prefer:
         h["Prefer"] = prefer
     return h
 
 
-# --- CRUD Tools --------------------------------------------------------------
+def _to_list(body: Any) -> list[dict[str, Any]]:
+    """Normalize response body to list."""
+    if isinstance(body, list):
+        return body
+    return [body] if body else []
 
 
-@tool(description="Select rows from a table with optional filters")
+@tool(description="Select rows from a Supabase table with optional filters, ordering, and pagination")
 async def db_select(
     table: str,
     columns: str = "*",
@@ -90,232 +71,188 @@ async def db_select(
     order: str | None = None,
     limit: int | None = None,
     offset: int | None = None,
-) -> DatabaseResult:
-    """Query rows from a Supabase table.
+) -> DbResult:
+    """Query rows from a table.
 
     Args:
-        table: Table name.
-        columns: Columns to select (default "*").
-        filters: PostgREST filter string (e.g., "status=eq.active").
-        order: Order by column (e.g., "created_at.desc").
-        limit: Max rows to return.
-        offset: Rows to skip.
+        table: Table name
+        columns: Columns to select (default "*")
+        filters: PostgREST filter string (e.g. "status=eq.active", "age=gt.18")
+        order: Order by column (e.g. "created_at.desc")
+        limit: Max rows to return
+        offset: Rows to skip
 
     Returns:
-        DatabaseResult: Result of the database operation.
+        DbResult with rows in data field
 
     """
     ctx = get_context()
-
-    # Build query string, then encode to handle spaces/special chars
-    query = f"select={columns}"
+    q = f"select={columns}"
     if filters:
-        query += f"&{filters}"
+        q += f"&{filters}"
     if order:
-        query += f"&order={order}"
+        q += f"&order={order}"
     if limit:
-        query += f"&limit={limit}"
+        q += f"&limit={limit}"
     if offset:
-        query += f"&offset={offset}"
+        q += f"&offset={offset}"
 
-    path = f"/{table}?{_encode_query(query)}"
+    req = HttpRequest(method=HttpMethod.GET, path=f"/{table}?{_enc(q)}", headers=_hdrs("count=exact"))
+    resp = await ctx.dispatch("supabase", req)
 
-    request = HttpRequest(method=HttpMethod.GET, path=path, headers=_headers("count=exact"))
-    response = await ctx.dispatch("supabase", request)
-
-    if response.success:
-        body = response.response.body
-        data = body if isinstance(body, list) else [body] if body else []
-        return DatabaseResult(success=True, data=data, count=len(data))
-
-    msg = response.error.message if response.error else "Query failed"
-    return DatabaseResult(success=False, error=msg)
+    if resp.success:
+        data = _to_list(resp.response.body)
+        return DbResult(success=True, data=data, count=len(data))
+    return DbResult(success=False, error=resp.error.message if resp.error else "Query failed")
 
 
-@tool(description="Insert one or more rows into a table")
-async def db_insert(table: str, rows: list[dict[str, Any]], *, return_data: bool = True) -> DatabaseResult:
-    """Insert rows into a Supabase table.
+@tool(description="Insert one or more rows into a Supabase table")
+async def db_insert(table: str, rows: list[dict[str, Any]], *, return_data: bool = True) -> DbResult:
+    """Insert rows into a table.
 
     Args:
-        table: Table name.
-        rows: List of row objects to insert.
-        return_data: Whether to return inserted rows.
+        table: Table name
+        rows: List of row objects to insert
+        return_data: Return inserted rows (default True)
 
     Returns:
-        DatabaseResult: Result of the database operation.
+        DbResult with inserted rows if return_data=True
 
     """
     ctx = get_context()
-
     prefer = "return=representation" if return_data else "return=minimal"
-    request = HttpRequest(method=HttpMethod.POST, path=f"/{table}", headers=_headers(prefer), body=rows)
-    response = await ctx.dispatch("supabase", request)
+    req = HttpRequest(method=HttpMethod.POST, path=f"/{table}", headers=_hdrs(prefer), body=rows)
+    resp = await ctx.dispatch("supabase", req)
 
-    if response.success:
-        body = response.response.body
-        data = body if isinstance(body, list) else [body] if body else []
-        return DatabaseResult(success=True, data=data, count=len(rows))
-
-    msg = response.error.message if response.error else "Insert failed"
-    return DatabaseResult(success=False, error=msg)
+    if resp.success:
+        return DbResult(success=True, data=_to_list(resp.response.body), count=len(rows))
+    return DbResult(success=False, error=resp.error.message if resp.error else "Insert failed")
 
 
-@tool(description="Update rows in a table matching filters")
-async def db_update(table: str, updates: dict[str, Any], filters: str, *, return_data: bool = True) -> DatabaseResult:
-    """Update rows in a Supabase table.
+@tool(description="Update rows in a Supabase table matching the specified filters")
+async def db_update(table: str, updates: dict[str, Any], filters: str, *, return_data: bool = True) -> DbResult:
+    """Update rows matching filters.
 
     Args:
-        table: Table name.
-        updates: Fields to update.
-        filters: PostgREST filter (required, e.g., "id=eq.123").
-        return_data: Whether to return updated rows.
+        table: Table name
+        updates: Fields to update
+        filters: PostgREST filter (required, e.g. "id=eq.123")
+        return_data: Return updated rows (default True)
 
     Returns:
-        DatabaseResult: Result of the database operation.
+        DbResult with updated rows if return_data=True
 
     """
     ctx = get_context()
-
     prefer = "return=representation" if return_data else "return=minimal"
-    path = f"/{table}?{_encode_query(filters)}"
-    request = HttpRequest(method=HttpMethod.PATCH, path=path, headers=_headers(prefer), body=updates)
-    response = await ctx.dispatch("supabase", request)
+    req = HttpRequest(method=HttpMethod.PATCH, path=f"/{table}?{_enc(filters)}", headers=_hdrs(prefer), body=updates)
+    resp = await ctx.dispatch("supabase", req)
 
-    if response.success:
-        body = response.response.body
-        data = body if isinstance(body, list) else [body] if body else []
-        return DatabaseResult(success=True, data=data, count=len(data))
-
-    msg = response.error.message if response.error else "Update failed"
-    return DatabaseResult(success=False, error=msg)
+    if resp.success:
+        data = _to_list(resp.response.body)
+        return DbResult(success=True, data=data, count=len(data))
+    return DbResult(success=False, error=resp.error.message if resp.error else "Update failed")
 
 
-@tool(description="Delete rows from a table matching filters")
-async def db_delete(table: str, filters: str, *, return_data: bool = False) -> DatabaseResult:
-    """Delete rows from a Supabase table.
+@tool(description="Delete rows from a Supabase table matching the specified filters")
+async def db_delete(table: str, filters: str, *, return_data: bool = False) -> DbResult:
+    """Delete rows matching filters.
 
     Args:
-        table: Table name.
-        filters: PostgREST filter (required, e.g., "id=eq.123").
-        return_data: Whether to return deleted rows.
+        table: Table name
+        filters: PostgREST filter (required, e.g. "id=eq.123")
+        return_data: Return deleted rows (default False)
 
     Returns:
-        DatabaseResult: Result of the database operation.
+        DbResult with deleted rows if return_data=True
 
     """
     ctx = get_context()
-
     prefer = "return=representation" if return_data else "return=minimal"
-    path = f"/{table}?{_encode_query(filters)}"
-    request = HttpRequest(method=HttpMethod.DELETE, path=path, headers=_headers(prefer))
-    response = await ctx.dispatch("supabase", request)
+    req = HttpRequest(method=HttpMethod.DELETE, path=f"/{table}?{_enc(filters)}", headers=_hdrs(prefer))
+    resp = await ctx.dispatch("supabase", req)
 
-    if response.success:
-        body = response.response.body
-        data = body if isinstance(body, list) else [body] if body else []
-        return DatabaseResult(success=True, data=data)
-
-    msg = response.error.message if response.error else "Delete failed"
-    return DatabaseResult(success=False, error=msg)
+    if resp.success:
+        return DbResult(success=True, data=_to_list(resp.response.body))
+    return DbResult(success=False, error=resp.error.message if resp.error else "Delete failed")
 
 
-@tool(description="Upsert (insert or update) rows in a table")
+@tool(description="Upsert rows into a Supabase table (insert or update on conflict)")
 async def db_upsert(
     table: str, rows: list[dict[str, Any]], *, on_conflict: str = "id", return_data: bool = True
-) -> DatabaseResult:
-    """Upsert rows into a Supabase table.
+) -> DbResult:
+    """Upsert rows (insert or update on conflict).
 
     Args:
-        table: Table name.
-        rows: List of row objects.
-        on_conflict: Conflict resolution column (default "id").
-        return_data: Whether to return upserted rows.
+        table: Table name
+        rows: List of row objects
+        on_conflict: Column for conflict resolution (default "id")
+        return_data: Return upserted rows (default True)
 
     Returns:
-        DatabaseResult: Result of the database operation.
+        DbResult with upserted rows if return_data=True
 
     """
     ctx = get_context()
-
-    prefer = "return=representation" if return_data else "return=minimal"
-    prefer += ",resolution=merge-duplicates"
-    request = HttpRequest(
-        method=HttpMethod.POST, path=f"/{table}?on_conflict={on_conflict}", headers=_headers(prefer), body=rows
+    prefer = ("return=representation" if return_data else "return=minimal") + ",resolution=merge-duplicates"
+    req = HttpRequest(
+        method=HttpMethod.POST, path=f"/{table}?on_conflict={on_conflict}", headers=_hdrs(prefer), body=rows
     )
-    response = await ctx.dispatch("supabase", request)
+    resp = await ctx.dispatch("supabase", req)
 
-    if response.success:
-        body = response.response.body
-        data = body if isinstance(body, list) else [body] if body else []
-        return DatabaseResult(success=True, data=data, count=len(rows))
-
-    msg = response.error.message if response.error else "Upsert failed"
-    return DatabaseResult(success=False, error=msg)
+    if resp.success:
+        return DbResult(success=True, data=_to_list(resp.response.body), count=len(rows))
+    return DbResult(success=False, error=resp.error.message if resp.error else "Upsert failed")
 
 
-@tool(description="Get a single row by primary key")
-async def db_get_by_id(table: str, id_column: str, id_value: str | int, columns: str = "*") -> DatabaseSingleResult:
+@tool(description="Get a single row by primary key from a Supabase table")
+async def db_get_by_id(table: str, id_column: str, id_value: str | int, columns: str = "*") -> DbSingle:
     """Fetch a single row by ID.
 
     Args:
-        table: Table name.
-        id_column: Primary key column name.
-        id_value: Primary key value.
-        columns: Columns to select.
+        table: Table name
+        id_column: Primary key column name
+        id_value: Primary key value
+        columns: Columns to select (default "*")
 
     Returns:
-        DatabaseSingleResult: Result of the database operation.
+        DbSingle with row data or error if not found
 
     """
     ctx = get_context()
+    q = f"select={columns}&{id_column}=eq.{id_value}"
+    req = HttpRequest(method=HttpMethod.GET, path=f"/{table}?{_enc(q)}", headers=_hdrs("return=representation"))
+    resp = await ctx.dispatch("supabase", req)
 
-    query = f"select={columns}&{id_column}=eq.{id_value}"
-    request = HttpRequest(
-        method=HttpMethod.GET,
-        path=f"/{table}?{_encode_query(query)}",
-        headers=_headers("return=representation"),
-    )
-    response = await ctx.dispatch("supabase", request)
-
-    if response.success:
-        body = response.response.body
+    if resp.success:
+        body = resp.response.body
         if isinstance(body, list) and body:
-            return DatabaseSingleResult(success=True, data=body[0])
+            return DbSingle(success=True, data=body[0])
         if isinstance(body, dict):
-            return DatabaseSingleResult(success=True, data=body)
-        return DatabaseSingleResult(success=False, error="Not found")
-
-    msg = response.error.message if response.error else "Query failed"
-    return DatabaseSingleResult(success=False, error=msg)
+            return DbSingle(success=True, data=body)
+        return DbSingle(success=False, error="Not found")
+    return DbSingle(success=False, error=resp.error.message if resp.error else "Query failed")
 
 
-@tool(description="Call a Supabase RPC function")
-async def db_rpc(function_name: str, params: dict[str, Any] | None = None) -> DatabaseResult:
-    """Call a Supabase stored procedure/function.
+@tool(description="Call a Supabase RPC (stored procedure/function)")
+async def db_rpc(function_name: str, params: dict[str, Any] | None = None) -> DbResult:
+    """Call a stored procedure.
 
     Args:
-        function_name: Name of the RPC function.
-        params: Parameters to pass to the function.
+        function_name: Name of the RPC function
+        params: Parameters to pass to the function
 
     Returns:
-        DatabaseResult: Result of the database operation.
+        DbResult with function return value in data field
 
     """
     ctx = get_context()
+    req = HttpRequest(method=HttpMethod.POST, path=f"/rpc/{function_name}", headers=_hdrs(), body=params or {})
+    resp = await ctx.dispatch("supabase", req)
 
-    request = HttpRequest(method=HttpMethod.POST, path=f"/rpc/{function_name}", headers=_headers(), body=params or {})
-    response = await ctx.dispatch("supabase", request)
-
-    if response.success:
-        body = response.response.body
-        data = body if isinstance(body, list) else [body] if body else []
-        return DatabaseResult(success=True, data=data)
-
-    msg = response.error.message if response.error else "RPC call failed"
-    return DatabaseResult(success=False, error=msg)
+    if resp.success:
+        return DbResult(success=True, data=_to_list(resp.response.body))
+    return DbResult(success=False, error=resp.error.message if resp.error else "RPC failed")
 
 
-# --- Export -------------------------------------------------------------------
-
-# Tools to be collected by server
 db_tools = [db_select, db_insert, db_update, db_delete, db_upsert, db_get_by_id, db_rpc]

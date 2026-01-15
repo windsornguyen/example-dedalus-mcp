@@ -1,30 +1,37 @@
 # Copyright (c) 2025 Dedalus Labs, Inc. and its contributors
 # SPDX-License-Identifier: MIT
 
-"""Minimal tools for local smoke testing.
+"""Smoke test tools for validating MCP handshake.
 
-These tools intentionally avoid `ctx.dispatch(...)` so we can validate:
-- SDK serialization + credential encryption
-- Product API JIT token exchange + MCP handshake
-
-…without requiring enclave dispatch to be available locally.
+These tools avoid ctx.dispatch() to test SDK serialization and
+token exchange without requiring enclave dispatch.
 """
 
-from __future__ import annotations
-
-from pydantic import BaseModel
+from pydantic.dataclasses import dataclass
 
 from dedalus_mcp import tool
 
 
-class SmokePingResponse(BaseModel):
+@dataclass(frozen=True)
+class PingResult:
+    """Smoke ping response."""
+
     ok: bool = True
-    message: str
+    message: str = "pong"
 
 
-@tool(description="Local smoke test tool that does not require enclave dispatch.")
-async def smoke_ping(message: str = "pong") -> SmokePingResponse:
-    return SmokePingResponse(message=message)
+@tool(description="Smoke test ping (no enclave dispatch required)")
+async def smoke_ping(message: str = "pong") -> PingResult:
+    """Simple ping for testing MCP connection.
+
+    Args:
+        message: Message to echo back (default "pong")
+
+    Returns:
+        PingResult with ok=True and echoed message
+
+    """
+    return PingResult(message=message)
 
 
 smoke_tools = [smoke_ping]

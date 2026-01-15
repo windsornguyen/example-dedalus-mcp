@@ -1,15 +1,18 @@
 # Copyright (c) 2025 Dedalus Labs, Inc. and its contributors
 # SPDX-License-Identifier: MIT
 
+"""MCP server entrypoint.
+
+Exposes GitHub and Supabase tools via Dedalus MCP framework.
+Credentials provided by clients at runtime via token exchange.
+"""
+
 from dedalus_mcp import MCPServer
 from dedalus_mcp.server import TransportSecuritySettings
 
-from db import supabase, db_tools
-from gh import github, gh_tools
+from db import db_tools, supabase
+from gh import gh_tools, github
 from smoke import smoke_tools
-
-
-# --- Server ------------------------------------------------------------------
 
 server = MCPServer(
     name="example-dedalus-mcp",
@@ -21,5 +24,6 @@ server = MCPServer(
 
 
 async def main() -> None:
+    """Start MCP server on port 8080."""
     server.collect(*smoke_tools, *gh_tools, *db_tools)
     await server.serve(port=8080)
