@@ -16,8 +16,6 @@ from db import db_tools, supabase
 from gh import gh_tools, github
 from smoke import smoke_tools
 
-MCP_PORT = int(os.getenv("MCP_PORT", "8081"))
-
 
 def create_server() -> MCPServer:
     """Create MCP server with current env config."""
@@ -35,4 +33,4 @@ async def main() -> None:
     """Start MCP server."""
     server = create_server()
     server.collect(*smoke_tools, *gh_tools, *db_tools)
-    await server.serve(port=MCP_PORT)
+    await server.serve(port=8080)
