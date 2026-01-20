@@ -118,8 +118,8 @@ python-downloads = "automatic" # Auto-download Python versions
 
 # Source configuration for development
 [tool.uv.sources]
-# Example for local development packages
-# my-local-package = { path = "../my-local-package", editable = true }
+# Local editable install for framework development
+dedalus-mcp = { path = "../openmcp", editable = true }
 
 [tool.uv.build-backend]
 source-exclude = [

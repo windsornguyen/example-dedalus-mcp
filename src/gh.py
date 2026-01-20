@@ -13,12 +13,9 @@ from pydantic.dataclasses import dataclass
 
 from dedalus_mcp import HttpMethod, HttpRequest, get_context, tool
 from dedalus_mcp.auth import Connection, SecretKeys
+from dedalus_mcp.types import ToolAnnotations
 
-github = Connection(
-    name="github",
-    secrets=SecretKeys(token="GITHUB_TOKEN"),
-    auth_header_format="token {api_key}",
-)
+github = Connection(name="github", secrets=SecretKeys(token="GITHUB_TOKEN"), auth_header_format="token {api_key}")
 
 
 @dataclass(frozen=True)
@@ -42,7 +39,11 @@ async def _req(method: HttpMethod, path: str, body: Any = None) -> GhResult:
 # --- User ---
 
 
-@tool(description="Get the authenticated GitHub user's profile")
+@tool(
+    description="Get the authenticated GitHub user's profile",
+    tags=["user", "read"],
+    annotations=ToolAnnotations(readOnlyHint=True),
+)
 async def gh_whoami() -> GhResult:
     """Get authenticated user profile.
 
@@ -60,7 +61,11 @@ async def gh_whoami() -> GhResult:
 # --- Repositories ---
 
 
-@tool(description="List repositories for the authenticated user")
+@tool(
+    description="List repositories for the authenticated user",
+    tags=["repos", "read"],
+    annotations=ToolAnnotations(readOnlyHint=True),
+)
 async def gh_list_repos(per_page: int = 10) -> GhResult:
     """List user's repositories sorted by last update.
 
@@ -83,7 +88,11 @@ async def gh_list_repos(per_page: int = 10) -> GhResult:
     return GhResult(success=True, data=[]) if r.success else r
 
 
-@tool(description="Get details for a specific GitHub repository")
+@tool(
+    description="Get details for a specific GitHub repository",
+    tags=["repos", "read"],
+    annotations=ToolAnnotations(readOnlyHint=True),
+)
 async def gh_get_repo(owner: str, repo: str) -> GhResult:
     """Get repository details.
 
@@ -101,7 +110,11 @@ async def gh_get_repo(owner: str, repo: str) -> GhResult:
 # --- Files ---
 
 
-@tool(description="Get file contents from a GitHub repository")
+@tool(
+    description="Get file contents from a GitHub repository",
+    tags=["files", "read"],
+    annotations=ToolAnnotations(readOnlyHint=True),
+)
 async def gh_get_file(owner: str, repo: str, path: str, ref: str | None = None) -> GhResult:
     """Get file contents (base64 encoded for binary).
 
@@ -121,7 +134,11 @@ async def gh_get_file(owner: str, repo: str, path: str, ref: str | None = None) 
     return await _req(HttpMethod.GET, url)
 
 
-@tool(description="Create or update a file in a GitHub repository")
+@tool(
+    description="Create or update a file in a GitHub repository",
+    tags=["files", "write"],
+    annotations=ToolAnnotations(readOnlyHint=False),
+)
 async def gh_put_file(
     owner: str,
     repo: str,
@@ -154,7 +171,11 @@ async def gh_put_file(
     return await _req(HttpMethod.PUT, f"/repos/{owner}/{repo}/contents/{path}", body)
 
 
-@tool(description="Delete a file from a GitHub repository")
+@tool(
+    description="Delete a file from a GitHub repository",
+    tags=["files", "write"],
+    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
+)
 async def gh_delete_file(
     owner: str, repo: str, path: str, message: str, sha: str, branch: str | None = None
 ) -> GhResult:
@@ -181,7 +202,11 @@ async def gh_delete_file(
 # --- Issues ---
 
 
-@tool(description="List issues in a GitHub repository")
+@tool(
+    description="List issues in a GitHub repository",
+    tags=["issues", "read"],
+    annotations=ToolAnnotations(readOnlyHint=True),
+)
 async def gh_list_issues(owner: str, repo: str, state: str = "open", per_page: int = 10) -> GhResult:
     """List issues (excludes pull requests).
 
@@ -208,7 +233,11 @@ async def gh_list_issues(owner: str, repo: str, state: str = "open", per_page: i
     return GhResult(success=True, data=[]) if r.success else r
 
 
-@tool(description="Get a specific issue by number")
+@tool(
+    description="Get a specific issue by number",
+    tags=["issues", "read"],
+    annotations=ToolAnnotations(readOnlyHint=True),
+)
 async def gh_get_issue(owner: str, repo: str, issue_number: int) -> GhResult:
     """Get issue details.
 
@@ -227,7 +256,11 @@ async def gh_get_issue(owner: str, repo: str, issue_number: int) -> GhResult:
 # --- Pull Requests ---
 
 
-@tool(description="List pull requests in a GitHub repository")
+@tool(
+    description="List pull requests in a GitHub repository",
+    tags=["prs", "read"],
+    annotations=ToolAnnotations(readOnlyHint=True),
+)
 async def gh_list_prs(owner: str, repo: str, state: str = "open", per_page: int = 10) -> GhResult:
     """List pull requests.
 
@@ -258,7 +291,11 @@ async def gh_list_prs(owner: str, repo: str, state: str = "open", per_page: int 
     return GhResult(success=True, data=[]) if r.success else r
 
 
-@tool(description="Get a specific pull request by number")
+@tool(
+    description="Get a specific pull request by number",
+    tags=["prs", "read"],
+    annotations=ToolAnnotations(readOnlyHint=True),
+)
 async def gh_get_pr(owner: str, repo: str, pr_number: int) -> GhResult:
     """Get pull request details.
 
@@ -277,7 +314,11 @@ async def gh_get_pr(owner: str, repo: str, pr_number: int) -> GhResult:
 # --- Workflows ---
 
 
-@tool(description="List GitHub Actions workflows in a repository")
+@tool(
+    description="List GitHub Actions workflows in a repository",
+    tags=["actions", "read"],
+    annotations=ToolAnnotations(readOnlyHint=True),
+)
 async def gh_list_workflows(owner: str, repo: str) -> GhResult:
     """List workflows.
 
@@ -294,14 +335,17 @@ async def gh_list_workflows(owner: str, repo: str) -> GhResult:
         return GhResult(
             success=True,
             data=[
-                {"id": w.get("id"), "name": w.get("name"), "state": w.get("state")}
-                for w in r.data.get("workflows", [])
+                {"id": w.get("id"), "name": w.get("name"), "state": w.get("state")} for w in r.data.get("workflows", [])
             ],
         )
     return GhResult(success=True, data=[]) if r.success else r
 
 
-@tool(description="List GitHub Actions workflow runs")
+@tool(
+    description="List GitHub Actions workflow runs",
+    tags=["actions", "read"],
+    annotations=ToolAnnotations(readOnlyHint=True),
+)
 async def gh_list_workflow_runs(owner: str, repo: str, workflow_id: int | None = None, per_page: int = 10) -> GhResult:
     """List workflow runs.
 
@@ -331,7 +375,11 @@ async def gh_list_workflow_runs(owner: str, repo: str, workflow_id: int | None =
     return GhResult(success=True, data=[]) if r.success else r
 
 
-@tool(description="Trigger a GitHub Actions workflow via dispatch event")
+@tool(
+    description="Trigger a GitHub Actions workflow via dispatch event",
+    tags=["actions", "write"],
+    annotations=ToolAnnotations(readOnlyHint=False),
+)
 async def gh_dispatch_workflow(
     owner: str, repo: str, workflow_id: int | str, ref: str, inputs: dict[str, str] | None = None
 ) -> GhResult:
@@ -354,7 +402,11 @@ async def gh_dispatch_workflow(
     return await _req(HttpMethod.POST, f"/repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches", body)
 
 
-@tool(description="Cancel a running GitHub Actions workflow")
+@tool(
+    description="Cancel a running GitHub Actions workflow",
+    tags=["actions", "write"],
+    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
+)
 async def gh_cancel_workflow_run(owner: str, repo: str, run_id: int) -> GhResult:
     """Cancel a workflow run.
 
@@ -370,7 +422,11 @@ async def gh_cancel_workflow_run(owner: str, repo: str, run_id: int) -> GhResult
     return await _req(HttpMethod.POST, f"/repos/{owner}/{repo}/actions/runs/{run_id}/cancel")
 
 
-@tool(description="Re-run a GitHub Actions workflow")
+@tool(
+    description="Re-run a GitHub Actions workflow",
+    tags=["actions", "write"],
+    annotations=ToolAnnotations(readOnlyHint=False, idempotentHint=True),
+)
 async def gh_rerun_workflow(owner: str, repo: str, run_id: int) -> GhResult:
     """Re-run a workflow.
 
@@ -389,7 +445,11 @@ async def gh_rerun_workflow(owner: str, repo: str, run_id: int) -> GhResult:
 # --- Variables & Secrets ---
 
 
-@tool(description="List GitHub Actions variables for a repository")
+@tool(
+    description="List GitHub Actions variables for a repository",
+    tags=["actions", "read"],
+    annotations=ToolAnnotations(readOnlyHint=True),
+)
 async def gh_list_actions_variables(owner: str, repo: str) -> GhResult:
     """List actions variables.
 
@@ -404,7 +464,11 @@ async def gh_list_actions_variables(owner: str, repo: str) -> GhResult:
     return await _req(HttpMethod.GET, f"/repos/{owner}/{repo}/actions/variables")
 
 
-@tool(description="List GitHub Actions secrets (names only, values are never exposed)")
+@tool(
+    description="List GitHub Actions secrets (names only, values are never exposed)",
+    tags=["actions", "read"],
+    annotations=ToolAnnotations(readOnlyHint=True),
+)
 async def gh_list_secrets(owner: str, repo: str) -> GhResult:
     """List secrets (names only).
 
@@ -428,7 +492,11 @@ async def gh_list_secrets(owner: str, repo: str) -> GhResult:
 # --- Deployments & Environments ---
 
 
-@tool(description="List deployments for a GitHub repository")
+@tool(
+    description="List deployments for a GitHub repository",
+    tags=["deployments", "read"],
+    annotations=ToolAnnotations(readOnlyHint=True),
+)
 async def gh_list_deployments(owner: str, repo: str, environment: str | None = None, per_page: int = 10) -> GhResult:
     """List deployments.
 
@@ -454,7 +522,11 @@ async def gh_list_deployments(owner: str, repo: str, environment: str | None = N
     return GhResult(success=True, data=[]) if r.success else r
 
 
-@tool(description="List environments configured for a GitHub repository")
+@tool(
+    description="List environments configured for a GitHub repository",
+    tags=["deployments", "read"],
+    annotations=ToolAnnotations(readOnlyHint=True),
+)
 async def gh_list_environments(owner: str, repo: str) -> GhResult:
     """List environments.
 
@@ -477,7 +549,11 @@ async def gh_list_environments(owner: str, repo: str) -> GhResult:
 # --- Commit Status ---
 
 
-@tool(description="Get combined commit status for a git ref")
+@tool(
+    description="Get combined commit status for a git ref",
+    tags=["commits", "read"],
+    annotations=ToolAnnotations(readOnlyHint=True),
+)
 async def gh_get_commit_status(owner: str, repo: str, ref: str) -> GhResult:
     """Get combined status for a ref.
 
@@ -493,7 +569,11 @@ async def gh_get_commit_status(owner: str, repo: str, ref: str) -> GhResult:
     return await _req(HttpMethod.GET, f"/repos/{owner}/{repo}/commits/{ref}/status")
 
 
-@tool(description="List individual status checks for a git ref")
+@tool(
+    description="List individual status checks for a git ref",
+    tags=["commits", "read"],
+    annotations=ToolAnnotations(readOnlyHint=True),
+)
 async def gh_list_commit_statuses(owner: str, repo: str, ref: str) -> GhResult:
     """List status checks for a ref.
 
@@ -521,7 +601,11 @@ async def gh_list_commit_statuses(owner: str, repo: str, ref: str) -> GhResult:
 # --- Discussions ---
 
 
-@tool(description="List GitHub Discussions in a repository (via GraphQL)")
+@tool(
+    description="List GitHub Discussions in a repository (via GraphQL)",
+    tags=["discussions", "read"],
+    annotations=ToolAnnotations(readOnlyHint=True),
+)
 async def gh_list_discussions(owner: str, repo: str, per_page: int = 10) -> GhResult:
     """List discussions using GraphQL API.
 

@@ -15,6 +15,7 @@ from pydantic.dataclasses import dataclass
 
 from dedalus_mcp import HttpMethod, HttpRequest, get_context, tool
 from dedalus_mcp.auth import Connection, SecretKeys
+from dedalus_mcp.types import ToolAnnotations
 
 supabase = Connection(
     name="supabase",
@@ -63,7 +64,11 @@ def _to_list(body: Any) -> list[dict[str, Any]]:
     return [body] if body else []
 
 
-@tool(description="Select rows from a Supabase table with optional filters, ordering, and pagination")
+@tool(
+    description="Select rows from a Supabase table with optional filters, ordering, and pagination",
+    tags=["database", "read"],
+    annotations=ToolAnnotations(readOnlyHint=True),
+)
 async def db_select(
     table: str,
     columns: str = "*",
@@ -106,7 +111,11 @@ async def db_select(
     return DbResult(success=False, error=resp.error.message if resp.error else "Query failed")
 
 
-@tool(description="Insert one or more rows into a Supabase table")
+@tool(
+    description="Insert one or more rows into a Supabase table",
+    tags=["database", "write"],
+    annotations=ToolAnnotations(readOnlyHint=False),
+)
 async def db_insert(table: str, rows: list[dict[str, Any]], *, return_data: bool = True) -> DbResult:
     """Insert rows into a table.
 
@@ -129,7 +138,11 @@ async def db_insert(table: str, rows: list[dict[str, Any]], *, return_data: bool
     return DbResult(success=False, error=resp.error.message if resp.error else "Insert failed")
 
 
-@tool(description="Update rows in a Supabase table matching the specified filters")
+@tool(
+    description="Update rows in a Supabase table matching the specified filters",
+    tags=["database", "write"],
+    annotations=ToolAnnotations(readOnlyHint=False),
+)
 async def db_update(table: str, updates: dict[str, Any], filters: str, *, return_data: bool = True) -> DbResult:
     """Update rows matching filters.
 
@@ -154,7 +167,11 @@ async def db_update(table: str, updates: dict[str, Any], filters: str, *, return
     return DbResult(success=False, error=resp.error.message if resp.error else "Update failed")
 
 
-@tool(description="Delete rows from a Supabase table matching the specified filters")
+@tool(
+    description="Delete rows from a Supabase table matching the specified filters",
+    tags=["database", "write"],
+    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True),
+)
 async def db_delete(table: str, filters: str, *, return_data: bool = False) -> DbResult:
     """Delete rows matching filters.
 
@@ -177,7 +194,11 @@ async def db_delete(table: str, filters: str, *, return_data: bool = False) -> D
     return DbResult(success=False, error=resp.error.message if resp.error else "Delete failed")
 
 
-@tool(description="Upsert rows into a Supabase table (insert or update on conflict)")
+@tool(
+    description="Upsert rows into a Supabase table (insert or update on conflict)",
+    tags=["database", "write"],
+    annotations=ToolAnnotations(readOnlyHint=False, idempotentHint=True),
+)
 async def db_upsert(
     table: str, rows: list[dict[str, Any]], *, on_conflict: str = "id", return_data: bool = True
 ) -> DbResult:
@@ -205,7 +226,11 @@ async def db_upsert(
     return DbResult(success=False, error=resp.error.message if resp.error else "Upsert failed")
 
 
-@tool(description="Get a single row by primary key from a Supabase table")
+@tool(
+    description="Get a single row by primary key from a Supabase table",
+    tags=["database", "read"],
+    annotations=ToolAnnotations(readOnlyHint=True),
+)
 async def db_get_by_id(table: str, id_column: str, id_value: str | int, columns: str = "*") -> DbSingle:
     """Fetch a single row by ID.
 
@@ -234,7 +259,11 @@ async def db_get_by_id(table: str, id_column: str, id_value: str | int, columns:
     return DbSingle(success=False, error=resp.error.message if resp.error else "Query failed")
 
 
-@tool(description="Call a Supabase RPC (stored procedure/function)")
+@tool(
+    description="Call a Supabase RPC (stored procedure/function)",
+    tags=["database", "rpc"],
+    annotations=ToolAnnotations(openWorldHint=True),  # Side effects depend on the function
+)
 async def db_rpc(function_name: str, params: dict[str, Any] | None = None) -> DbResult:
     """Call a stored procedure.
 

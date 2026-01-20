@@ -20,9 +20,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from dedalus_labs import AsyncDedalus, DedalusRunner
-from dedalus_mcp import MCPServer
 from dedalus_mcp.auth import Connection, SecretKeys, SecretValues
-from dedalus_mcp.server import TransportSecuritySettings
 
 
 class MissingEnvError(ValueError):
@@ -41,6 +39,13 @@ API_URL = get_env("DEDALUS_API_URL")
 AS_URL = get_env("DEDALUS_AS_URL")
 DEDALUS_API_KEY = os.getenv("DEDALUS_API_KEY")
 SUPABASE_URL = get_env("SUPABASE_URL")
+
+# Debug: print env vars
+print("=== Environment ===")
+print(f"  DEDALUS_API_URL: {API_URL}")
+print(f"  DEDALUS_AS_URL: {AS_URL}")
+print(f"  DEDALUS_API_KEY: {DEDALUS_API_KEY[:20]}..." if DEDALUS_API_KEY else "  DEDALUS_API_KEY: None")
+print(f"  SUPABASE_URL: {SUPABASE_URL}")
 
 # Connection: schema for a downstream service (name, required secrets, base URL).
 github = Connection(
@@ -62,12 +67,6 @@ supabase = Connection(
 github_secrets = SecretValues(github, token=os.getenv("GITHUB_TOKEN", ""))
 supabase_secrets = SecretValues(supabase, key=os.getenv("SUPABASE_SECRET_KEY", ""))
 
-srv = MCPServer(
-    name="windsor/example-dedalus-mcp",
-    connections=[github, supabase],
-    http_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
-)
-
 
 async def run_with_runner() -> None:
     """Demo using DedalusRunner (handles multi-turn, aggregates results)."""
@@ -75,9 +74,9 @@ async def run_with_runner() -> None:
     runner = DedalusRunner(client)
 
     result = await runner.run(
-        input="Use the Supabase tool to list all tables.",
+        input="Use db_select on 'mcp_repositories' table, columns 'slug,visibility', limit 5.",
         model="openai/gpt-4.1",
-        mcp_servers=[srv],
+        mcp_servers=["windsor/example-dedalus-mcp"],
         credentials=[github_secrets, supabase_secrets],
     )
 
@@ -96,8 +95,13 @@ async def run_raw() -> None:
 
     resp = await client.chat.completions.create(
         model="openai/gpt-4.1",
-        messages=[{"role": "user", "content": "Use the Supabase tool to list all tables."}],
-        mcp_servers=[srv],
+        messages=[
+            {
+                "role": "user",
+                "content": "Use db_select on 'mcp_repositories' table, columns 'slug,visibility', limit 5.",
+            }
+        ],
+        mcp_servers=["windsor/example-dedalus-mcp"],
         credentials=[github_secrets, supabase_secrets],
     )
 

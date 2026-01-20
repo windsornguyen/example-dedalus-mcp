@@ -16,19 +16,23 @@ from db import db_tools, supabase
 from gh import gh_tools, github
 from smoke import smoke_tools
 
-# Default to prod AS, override with DEDALUS_AS_URL env var
-AS_URL = os.getenv("DEDALUS_AS_URL")
+MCP_PORT = int(os.getenv("MCP_PORT", "8081"))
 
-server = MCPServer(
-    name="example-dedalus-mcp",
-    connections=[github, supabase],
-    http_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
-    streamable_http_stateless=True,
-    authorization_server=AS_URL,
-)
+
+def create_server() -> MCPServer:
+    """Create MCP server with current env config."""
+    as_url = os.getenv("DEDALUS_AS_URL", "https://as.dedaluslabs.ai")
+    return MCPServer(
+        name="example-dedalus-mcp",
+        connections=[github, supabase],
+        http_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
+        streamable_http_stateless=True,
+        authorization_server=as_url,
+    )
 
 
 async def main() -> None:
-    """Start MCP server on port 8080."""
+    """Start MCP server."""
+    server = create_server()
     server.collect(*smoke_tools, *gh_tools, *db_tools)
-    await server.serve(port=8080)
+    await server.serve(port=MCP_PORT)

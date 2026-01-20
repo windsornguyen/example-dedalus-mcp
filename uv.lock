@@ -305,17 +305,97 @@ wheels = [
 
 [[package]]
 name = "dedalus-mcp"
-version = "0.5.0"
-source = { registry = "https://pypi.org/simple" }
+version = "0.2.0"
+source = { editable = "../openmcp" }
 dependencies = [
     { name = "mcp", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "pydantic", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "pyjwt", extra = ["crypto"], marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "typing-extensions", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3e/5d/ec838fa8206cd9619d1882fd61315afff94c936f65173de950e361505917/dedalus_mcp-0.5.0.tar.gz", hash = "sha256:edc724d5e2b3d48ecd9fcf4c3e6a829a6212b43877af7098ebfe93e627409999", size = 125223, upload-time = "2025-12-18T03:13:29.262Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ae/93/f9a8811ef8f02c76493e78cbe29a6ccc0a3ab87cf366023883d1aaba89bb/dedalus_mcp-0.5.0-py3-none-any.whl", hash = "sha256:45b3803798b7ef26265742ff66ea451c95351a9a128a0c14a6aedcdfe356f4a3", size = 171339, upload-time = "2025-12-18T03:13:30.706Z" },
+
+[package.metadata]
+requires-dist = [
+    { name = "mcp", specifier = ">=1.25.0" },
+    { name = "pydantic", specifier = ">=2.12.0" },
+    { name = "pyjwt", extras = ["crypto"], specifier = ">=2.10.1" },
+    { name = "typing-extensions", specifier = ">=4.0.0" },
+    { name = "uvloop", marker = "sys_platform != 'win32' and extra == 'opt'", specifier = ">=0.22.1" },
+]
+provides-extras = ["opt"]
+
+[package.metadata.requires-dev]
+cli = [
+    { name = "griffe", specifier = ">=1.14.0" },
+    { name = "typer", specifier = ">=0.21.1" },
+]
+debug = [
+    { name = "icecream", specifier = ">=2.1.9" },
+    { name = "pdbpp", specifier = ">=0.12.0" },
+]
+dev = [
+    { name = "anyio", specifier = ">=4.12.1" },
+    { name = "deptry", specifier = ">=0.21.0" },
+    { name = "exceptiongroup", specifier = ">=1.0.0" },
+    { name = "faker", specifier = ">=40.1.2" },
+    { name = "fakeredis", specifier = ">=2.32.0" },
+    { name = "griffe", specifier = ">=1.14.0" },
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "hypothesis", specifier = ">=6.150.2" },
+    { name = "icecream", specifier = ">=2.1.9" },
+    { name = "inline-snapshot", specifier = ">=0.29.2" },
+    { name = "jsonschema", specifier = ">=4.26.0" },
+    { name = "pdbpp", specifier = ">=0.12.0" },
+    { name = "prek", specifier = ">=0.2.0" },
+    { name = "pytest", specifier = ">=8.4.2" },
+    { name = "pytest-asyncio", specifier = ">=1.2.0" },
+    { name = "pytest-benchmark", specifier = ">=5.1.0" },
+    { name = "pytest-cov", specifier = ">=7.0.0" },
+    { name = "pytest-httpx", specifier = ">=0.35.0" },
+    { name = "pytest-mock", specifier = ">=3.15.1" },
+    { name = "pytest-xdist", specifier = ">=3.8.0" },
+    { name = "respx", specifier = ">=0.22.0" },
+    { name = "ruff", specifier = ">=0.14.13" },
+    { name = "trio", specifier = ">=0.32.0" },
+    { name = "ty", specifier = ">=0.0.12" },
+    { name = "typer", specifier = ">=0.21.1" },
+    { name = "vulture", specifier = ">=2.14" },
+]
+docs = [
+    { name = "mkdocs", specifier = ">=1.6.0" },
+    { name = "mkdocs-material", specifier = ">=9.5.0" },
+    { name = "mkdocstrings", extras = ["python"], specifier = ">=1.0.1" },
+]
+lint = [
+    { name = "deptry", specifier = ">=0.21.0" },
+    { name = "prek", specifier = ">=0.2.0" },
+    { name = "ruff", specifier = ">=0.14.13" },
+    { name = "ty", specifier = ">=0.0.12" },
+    { name = "vulture", specifier = ">=2.14" },
+]
+performance = [
+    { name = "line-profiler", specifier = ">=4.1.0" },
+    { name = "memory-profiler", specifier = ">=0.61.0" },
+    { name = "pyinstrument", specifier = ">=5.1.2" },
+]
+test = [
+    { name = "anyio", specifier = ">=4.12.1" },
+    { name = "exceptiongroup", specifier = ">=1.0.0" },
+    { name = "faker", specifier = ">=40.1.2" },
+    { name = "fakeredis", specifier = ">=2.32.0" },
+    { name = "httpx", specifier = ">=0.28.1" },
+    { name = "hypothesis", specifier = ">=6.150.2" },
+    { name = "inline-snapshot", specifier = ">=0.29.2" },
+    { name = "jsonschema", specifier = ">=4.26.0" },
+    { name = "pytest", specifier = ">=8.4.2" },
+    { name = "pytest-asyncio", specifier = ">=1.2.0" },
+    { name = "pytest-benchmark", specifier = ">=5.1.0" },
+    { name = "pytest-cov", specifier = ">=7.0.0" },
+    { name = "pytest-httpx", specifier = ">=0.35.0" },
+    { name = "pytest-mock", specifier = ">=3.15.1" },
+    { name = "pytest-xdist", specifier = ">=3.8.0" },
+    { name = "respx", specifier = ">=0.22.0" },
+    { name = "trio", specifier = ">=0.32.0" },
 ]
 
 [[package]]
@@ -376,7 +456,7 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "dedalus-mcp", specifier = ">=0.4.1" },
+    { name = "dedalus-mcp", editable = "../openmcp" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "python-dotenv", specifier = ">=1.2.1" },
     { name = "uvloop", marker = "sys_platform != 'win32'", specifier = ">=0.22.1" },
@@ -577,7 +657,7 @@ wheels = [
 
 [[package]]
 name = "mcp"
-version = "1.24.0"
+version = "1.25.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
@@ -594,9 +674,9 @@ dependencies = [
     { name = "typing-inspection", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
     { name = "uvicorn", marker = "sys_platform == 'darwin' or sys_platform == 'linux'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d6/2c/db9ae5ab1fcdd9cd2bcc7ca3b7361b712e30590b64d5151a31563af8f82d/mcp-1.24.0.tar.gz", hash = "sha256:aeaad134664ce56f2721d1abf300666a1e8348563f4d3baff361c3b652448efc", size = 604375, upload-time = "2025-12-12T14:19:38.205Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d5/2d/649d80a0ecf6a1f82632ca44bec21c0461a9d9fc8934d38cb5b319f2db5e/mcp-1.25.0.tar.gz", hash = "sha256:56310361ebf0364e2d438e5b45f7668cbb124e158bb358333cd06e49e83a6802", size = 605387, upload-time = "2025-12-19T10:19:56.985Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/61/0d/5cf14e177c8ae655a2fd9324a6ef657ca4cafd3fc2201c87716055e29641/mcp-1.24.0-py3-none-any.whl", hash = "sha256:db130e103cc50ddc3dffc928382f33ba3eaef0b711f7a87c05e7ded65b1ca062", size = 232896, upload-time = "2025-12-12T14:19:36.14Z" },
+    { url = "https://files.pythonhosted.org/packages/e2/fc/6dc7659c2ae5ddf280477011f4213a74f806862856b796ef08f028e664bf/mcp-1.25.0-py3-none-any.whl", hash = "sha256:b37c38144a666add0862614cc79ec276e97d72aa8ca26d622818d4e278b9721a", size = 233076, upload-time = "2025-12-19T10:19:55.416Z" },
 ]
 
 [[package]]
